@@ -23,7 +23,6 @@ class Render
 		today = getTimeStamp();
 		fullRenderPath = path + gitVersionHash + "/" + today + "/";
 		runId = getRunId();
-		println(runId);
 	}
 
 	String getTimeStamp() 
@@ -34,7 +33,15 @@ class Render
 
 	void startRendering()
 	{
-		beginRecord(renderer, fullRenderPath + today + "-" + runId + "-" + renderId + ".pdf");
+		String suffix = "";
+		if (renderer.equals(PDF))
+		{
+			suffix = ".pdf";
+		} else if (renderer.equals(P2D))
+		{
+			suffix = ".jpg";
+		}
+		beginRecord(renderer, fullRenderPath + today + "-" + runId + "-" + renderId + suffix);
 	}
 
 	void stopRendering()
