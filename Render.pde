@@ -19,6 +19,7 @@ class Render
 			path += "/";
 		}
 		this.path = path;
+		printWorkingDirectoryStatus();
 		gitVersionHash = getGitVersionHash();
 		today = getTimeStamp();
 		fullRenderPath = path + gitVersionHash + "/" + today + "/";
@@ -48,6 +49,28 @@ class Render
 	{
 		endRecord();
 		renderId++;
+	}
+
+	void printWorkingDirectoryStatus()
+	{
+		try 
+		{
+			ProcessBuilder processBuilder = new ProcessBuilder("/usr/local/bin/git", "status");
+			processBuilder.directory(new File(sketchPath));
+		    processBuilder.redirectErrorStream(true); // Initially, this property is false, meaning that the standard output and error output of a subprocess are sent to two separate streams
+			Process p = processBuilder.start();
+		    BufferedReader output = new BufferedReader(new InputStreamReader(p.getInputStream()));
+		    String status;
+		    while ((status = output.readLine()) != null)
+		    {
+		    	println(status);
+		    }
+		    p.waitFor();
+		    output.close();
+		} catch (Exception e) 
+		{
+			println(e);
+		}
 	}
 
 	String getGitVersionHash()
