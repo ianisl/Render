@@ -1,19 +1,22 @@
 import java.util.Calendar;
 import java.io.InputStreamReader;
 
-class Render
+public class Render
 {
-	String renderer;
 	String path; // absolute path to the folder where images should be recorded
 	String fullRenderPath; // images are sorted in subfolders within "path". This is the current subfolder given git version and date
 	String gitVersionHash;
 	int runId; // for each day, the runId increases by 1 each time the program is launched and at least one image has been saved
 	int renderId = 1; // for each run, the renderId increases by 1 each time an image is saved 
 	String today;
+	boolean isRenderingJpg = false;
+	boolean isRenderingPdf = false;
+	boolean hasPdfRenderingStarted = false;
 
-	Render(String renderer, String path)
+	Render(PApplet applet, String path)
 	{
-		this.renderer = renderer;
+		applet.registerPre(this); // register the pre event
+		applet.registerDraw(this); // register the draw event
 		if (!path.endsWith("/"))
 		{
 			path += "/";
@@ -26,29 +29,63 @@ class Render
 		runId = getRunId();
 	}
 
+	void pre()
+	{
+		// The following code will be called just before the main applet's draw method
+		if (isRenderingPdf)
+		{
+			beginRecord(PDF, fullRenderPath + today + "-" + runId + "-" + renderId + ".pdf");
+			hasPdfRenderingStarted = true;
+		}
+	}
+
+	void draw()
+	{
+		// The following code will be called just after the main applet's draw() method
+		// since the renderPdf method might be called in the middle of the main applet's draw method, 
+		// we need to check if pdf rendering has actually started.
+		if (hasPdfRenderingStarted || isRenderingJpg)
+		{
+			if (hasPdfRenderingStarted)
+			{
+				endRecord();
+			}
+			if (isRenderingJpg)
+			{
+				save(fullRenderPath + today + "-" + runId + "-" + renderId + ".jpg");
+			}
+			renderId++;
+			hasPdfRenderingStarted = false;
+			isRenderingPdf = false;			
+			isRenderingJpg = false;
+		}
+	}
+
 	String getTimeStamp() 
 	{
 		Calendar now = Calendar.getInstance();
 		return String.format("20%1$ty-%1$tm-%1$td", now);
 	}
 
-	void startRendering()
+	void renderPdf()
 	{
-		String suffix = "";
-		if (renderer.equals(PDF))
-		{
-			suffix = ".pdf";
-		} else if (renderer.equals(P2D))
-		{
-			suffix = ".jpg";
-		}
-		beginRecord(renderer, fullRenderPath + today + "-" + runId + "-" + renderId + suffix);
+		isRenderingPdf = true;
 	}
 
-	void stopRendering()
+	void renderPdfAndJpg()
 	{
-		endRecord();
-		renderId++;
+		isRenderingPdf = true;
+		isRenderingJpg = true;
+	}
+
+	void renderJpg()
+	{
+		isRenderingJpg = true;
+	}
+
+	boolean isRenderingPdf()
+	{
+		return isRenderingPdf;
 	}
 
 	void printWorkingDirectoryStatus()
