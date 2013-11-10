@@ -11,7 +11,7 @@ public class Render
 	String today;
 	boolean isRenderingJpg = false;
 	boolean isRenderingPdf = false;
-	boolean hasPdfRenderingStarted = false;
+	boolean hasRenderingStarted = false;
 
 	Render(PApplet applet, String path)
 	{
@@ -32,10 +32,15 @@ public class Render
 	void pre()
 	{
 		// The following code will be called just before the main applet's draw method
-		if (isRenderingPdf)
+		if (isRenderingPdf || isRenderingJpg)
 		{
-			beginRecord(PDF, fullRenderPath + today + "-" + runId + "-" + renderId + ".pdf");
-			hasPdfRenderingStarted = true;
+			if (isRenderingPdf)
+			{
+				beginRecord(PDF, fullRenderPath + today + "-" + runId + "-" + renderId + ".pdf");
+			}
+			hasRenderingStarted = true;
+			save(fullRenderPath + today + "-" + runId + "-" + renderId + ".jpg");
+
 		}
 	}
 
@@ -44,20 +49,19 @@ public class Render
 		// The following code will be called just after the main applet's draw() method
 		// since the renderPdf method might be called in the middle of the main applet's draw method, 
 		// we need to check if pdf rendering has actually started.
-		if (hasPdfRenderingStarted || isRenderingJpg)
+		if (hasRenderingStarted)
 		{
-			if (hasPdfRenderingStarted)
+			if (isRenderingPdf)
 			{
 				endRecord();
+				isRenderingPdf = false;			
 			}
 			if (isRenderingJpg)
 			{
-				save(fullRenderPath + today + "-" + runId + "-" + renderId + ".jpg");
+				isRenderingJpg = false;
 			}
+			hasRenderingStarted = false;
 			renderId++;
-			hasPdfRenderingStarted = false;
-			isRenderingPdf = false;			
-			isRenderingJpg = false;
 		}
 	}
 
@@ -86,6 +90,11 @@ public class Render
 	boolean isRenderingPdf()
 	{
 		return isRenderingPdf;
+	}
+
+	boolean isRenderingJpg()
+	{
+		return isRenderingJpg;
 	}
 
 	void printWorkingDirectoryStatus()
@@ -135,18 +144,21 @@ public class Render
     	if (fileNames != null)
     	{
     		// if some images were previously recorded for this version
-    		int runId = 1;
+    		int runId = 0; // We start at 0: if no previous runId is found, runId will be increased to 1
     		for (String n : fileNames)
     		{
     			if (n.startsWith(today))
     			{
     				// if at least one image was previously recorded on this day
     				String[] s = n.split("-");
-    				runId = Integer.parseInt(s[3]); // retrieve runId
-    				runId++;
-    				break;
+    				int id = Integer.parseInt(s[3]);
+    				if (id > runId)
+    				{
+    					runId = id; // we want to retrieve the highest runId
+    				} 
     			}
     		}
+			runId++;
     		return runId;
     	} else
     	{
