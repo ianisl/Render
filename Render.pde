@@ -119,6 +119,28 @@ public class Render
 		}
 	}
 
+	void commitAll(String message)
+	{
+		try 
+		{
+			ProcessBuilder processBuilder = new ProcessBuilder("/usr/local/bin/git", "commit", "-a", "-m", "\"" + message + "\"");
+			processBuilder.directory(new File(sketchPath));
+		    processBuilder.redirectErrorStream(true); // Initially, this property is false, meaning that the standard output and error output of a subprocess are sent to two separate streams
+			Process p = processBuilder.start();
+		    BufferedReader output = new BufferedReader(new InputStreamReader(p.getInputStream()));
+		    String status;
+		    while ((status = output.readLine()) != null)
+		    {
+		    	println(status);
+		    }
+		    p.waitFor();
+		    output.close();
+		} catch (Exception e) 
+		{
+			println(e);
+		}	
+	}
+
 	String getGitVersionHash()
 	{
 		try 
