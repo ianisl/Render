@@ -1,32 +1,20 @@
 import java.util.Calendar;
 import java.io.InputStreamReader;
 
-public class Render
+public class Render extends RenderBase
 {
-	String path; // absolute path to the folder where images should be recorded
-	String fullRenderPath; // images are sorted in subfolders within "path". This is the current subfolder given git version and date
-	String gitVersionHash;
-	int runId; // for each day, the runId increases by 1 each time the program is launched and at least one image has been saved
-	int renderId = 1; // for each run, the renderId increases by 1 each time an image is saved 
-	String today;
+	// Basic renderer.
+	// Export to jpg or pdf (this will only work
+	// if the sketch is using Processing shape primitives).
 	boolean isRenderingJpg = false;
 	boolean isRenderingPdf = false;
 	boolean hasRenderingStarted = false;
 
 	Render(PApplet applet, String path)
 	{
+		super(applet, path);
 		applet.registerPre(this); // register the pre event
 		applet.registerDraw(this); // register the draw event
-		if (!path.endsWith("/"))
-		{
-			path += "/";
-		}
-		this.path = path;
-		printWorkingDirectoryStatus();
-		gitVersionHash = getGitVersionHash();
-		today = getTimeStamp();
-		fullRenderPath = path + gitVersionHash + "/" + today + "/";
-		runId = getRunId();
 	}
 
 	void pre()
@@ -65,12 +53,6 @@ public class Render
 		}
 	}
 
-	String getTimeStamp() 
-	{
-		Calendar now = Calendar.getInstance();
-		return String.format("20%1$ty-%1$tm-%1$td", now);
-	}
-
 	void renderPdf()
 	{
 		isRenderingPdf = true;
@@ -95,6 +77,64 @@ public class Render
 	boolean isRenderingJpg()
 	{
 		return isRenderingJpg;
+	}
+
+}
+
+public class RenderCustom extends RenderBase
+{
+	// A convenience class to use a custom renderer (implementing
+	// the Renderer interface) with the RenderBase file system operations.
+	Renderer renderer;	
+
+	RenderCustom(PApplet applet, String path, Renderer renderer)
+	{
+		super(applet, path);
+		this.renderer = renderer;
+	}
+
+	void render()
+	{
+		renderer.render(fullRenderPath + today + "-" + runId + "-" + renderId); // Call custom renderer's render() method
+		renderId++;
+	}
+
+}
+
+public interface Renderer
+{
+	public void render(String filePathWithoutExtension);
+}
+
+public class RenderBase
+{
+	// This class contains the basic file system operations needed by renderers.
+	String path; // absolute path to the folder where images should be recorded
+	String fullRenderPath; // images are sorted in subfolders within "path". This is the current subfolder given git version and date
+	String gitVersionHash;
+	int runId; // for each day, the runId increases by 1 each time the program is launched and at least one image has been saved
+	int renderId = 1; // for each run, the renderId increases by 1 each time an image is saved 
+	String today;
+	boolean hasRenderingStarted = false;
+
+	RenderBase(PApplet applet, String path)
+	{
+		if (!path.endsWith("/"))
+		{
+			path += "/";
+		}
+		this.path = path;
+		printWorkingDirectoryStatus();
+		gitVersionHash = getGitVersionHash();
+		today = getTimeStamp();
+		fullRenderPath = path + gitVersionHash + "/" + today + "/";
+		runId = getRunId();
+	}
+
+	String getTimeStamp() 
+	{
+		Calendar now = Calendar.getInstance();
+		return String.format("20%1$ty-%1$tm-%1$td", now);
 	}
 
 	void printWorkingDirectoryStatus()
