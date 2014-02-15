@@ -1,6 +1,9 @@
 import java.util.Calendar;
 import java.io.InputStreamReader;
 
+// Classes named Render* (RenderCustom, RenderBase, Render, ...) define rendering jobs.
+// To define custom rendering jobs outside these classes, a Renderer interface must be implemented.
+
 public class Render extends RenderBase
 {
 	// Basic renderer.
