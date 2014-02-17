@@ -12,12 +12,14 @@ public class Render extends RenderBase
 	boolean isRenderingJpg = false;
 	boolean isRenderingPdf = false;
 	boolean hasRenderingStarted = false;
+	String renderer;
 
 	Render(PApplet applet, String path)
 	{
 		super(applet, path);
 		applet.registerPre(this); // register the pre event
 		applet.registerDraw(this); // register the draw event
+		renderer = applet.g.getClass().getName();
 	}
 
 	void pre()
@@ -25,12 +27,19 @@ public class Render extends RenderBase
 		// The following code will be called just before the main applet's draw method
 		if (isRenderingPdf || isRenderingJpg)
 		{
+			String filePathWithoutExtension = baseRenderPath + today + "-" + runId + "-" + renderId;
 			if (isRenderingPdf)
 			{
-				beginRecord(PDF, fullRenderPath + today + "-" + runId + "-" + renderId + ".pdf");
+				if (renderer.equals(P2D) || renderer.equals(PDF))
+				{
+					beginRecord(PDF, filePathWithoutExtension + ".pdf");
+				} else if (renderer.equals(P3D))
+				{
+					beginRaw(PDF, filePathWithoutExtension + ".pdf");
+				}
 			}
 			hasRenderingStarted = true;
-			save(fullRenderPath + today + "-" + runId + "-" + renderId + ".jpg");
+			save(filePathWithoutExtension + ".jpg");
 
 		}
 	}
@@ -44,7 +53,13 @@ public class Render extends RenderBase
 		{
 			if (isRenderingPdf)
 			{
-				endRecord();
+				if (renderer.equals(P2D) || renderer.equals(PDF))
+				{
+					endRecord();
+				} else if (renderer.equals(P3D))
+				{
+					endRaw();
+				}
 				isRenderingPdf = false;			
 			}
 			if (isRenderingJpg)
@@ -98,7 +113,7 @@ public class RenderCustom extends RenderBase
 
 	void render()
 	{
-		renderer.render(fullRenderPath + today + "-" + runId + "-" + renderId); // Call custom renderer's render() method
+		renderer.render(baseRenderPath + today + "-" + runId + "-" + renderId); // Call custom renderer's render() method
 		renderId++;
 	}
 
@@ -113,7 +128,7 @@ public class RenderBase
 {
 	// This class contains the basic file system operations needed by renderers.
 	String path; // absolute path to the folder where images should be recorded
-	String fullRenderPath; // images are sorted in subfolders within "path". This is the current subfolder given git version and date
+	String baseRenderPath; // images are sorted in subfolders within "path". This is the current subfolder given git version and date
 	String gitVersionHash;
 	int runId; // for each day, the runId increases by 1 each time the program is launched and at least one image has been saved
 	int renderId = 1; // for each run, the renderId increases by 1 each time an image is saved 
@@ -130,7 +145,7 @@ public class RenderBase
 		printWorkingDirectoryStatus();
 		gitVersionHash = getGitVersionHash();
 		today = getTimeStamp();
-		fullRenderPath = path + gitVersionHash + "/" + today + "/";
+		baseRenderPath = path + gitVersionHash + "/" + today + "/";
 		runId = getRunId();
 	}
 
@@ -205,7 +220,7 @@ public class RenderBase
 
 	int getRunId()
 	{
-    	String[] fileNames = listFileNames(fullRenderPath);
+    	String[] fileNames = listFileNames(baseRenderPath);
     	if (fileNames != null)
     	{
     		// if some images were previously recorded for this version
