@@ -1,263 +1,228 @@
 import java.util.Calendar;
-import java.io.InputStreamReader;
 
 // Classes named Render* (RenderCustom, RenderBase, Render, ...) define rendering jobs.
 // To define custom rendering jobs outside these classes, a Renderer interface must be implemented.
 
 public class Render extends RenderBase
 {
-	// Basic renderer.
-	// Export to jpg or pdf (this will only work
-	// if the sketch is using Processing shape primitives).
-	boolean isRenderingJpg = false;
-	boolean isRenderingPdf = false;
-	boolean hasRenderingStarted = false;
-	String renderer;
+    // Basic renderer.
+    // Export to jpg or pdf (this will only work
+    // if the sketch is using Processing shape primitives).
+    boolean isRenderingJpg = false;
+    boolean isRenderingPdf = false;
+    boolean hasRenderingStarted = false;
+    String renderer;
 
-	Render(PApplet applet, String path)
-	{
-		super(applet, path);
-		applet.registerPre(this); // register the pre event
-		applet.registerDraw(this); // register the draw event
-		renderer = applet.g.getClass().getName();
-	}
+    Render(PApplet applet, String baseFolder)
+    {
+        super(applet, baseFolder);
+        applet.registerPre(this); // register the pre event
+        applet.registerDraw(this); // register the draw event
+        renderer = applet.g.getClass().getName();
+    }
 
-	void pre()
-	{
-		// The following code will be called just before the main applet's draw method
-		if (isRenderingPdf || isRenderingJpg)
-		{
-			String filePathWithoutExtension = baseRenderPath + today + "-" + runId + "-" + renderId;
-			if (isRenderingPdf)
-			{
-				if (renderer.equals(P2D) || renderer.equals(PDF))
-				{
-					beginRecord(PDF, filePathWithoutExtension + ".pdf");
-				} else if (renderer.equals(P3D))
-				{
-					beginRaw(PDF, filePathWithoutExtension + ".pdf");
-				}
-			}
-			hasRenderingStarted = true;
-			save(filePathWithoutExtension + ".jpg");
+    Render(PApplet applet, String baseFolder, String fileName)
+    {
+        super(applet, baseFolder, fileName);
+        applet.registerPre(this);
+        applet.registerDraw(this);
+        renderer = applet.g.getClass().getName();
+    }
 
-		}
-	}
+    void pre()
+    {
+        // The following code will be called just before the main applet's draw method
+        if (isRenderingPdf || isRenderingJpg)
+        {
+            updateFilePath();
+            if (isRenderingPdf)
+            {
+                if (renderer.equals(P2D) || renderer.equals(PDF))
+                {
+                    beginRecord(PDF, filePathWithoutExtension + ".pdf");
+                } else if (renderer.equals(P3D))
+                {
+                    beginRaw(PDF, filePathWithoutExtension + ".pdf");
+                }
+            }
+            hasRenderingStarted = true;
+            save(filePathWithoutExtension + ".jpg");
+        }
+    }
 
-	void draw()
-	{
-		// The following code will be called just after the main applet's draw() method
-		// since the renderPdf method might be called in the middle of the main applet's draw method, 
-		// we need to check if pdf rendering has actually started.
-		if (hasRenderingStarted)
-		{
-			if (isRenderingPdf)
-			{
-				if (renderer.equals(P2D) || renderer.equals(PDF))
-				{
-					endRecord();
-				} else if (renderer.equals(P3D))
-				{
-					endRaw();
-				}
-				isRenderingPdf = false;			
-			}
-			if (isRenderingJpg)
-			{
-				isRenderingJpg = false;
-			}
-			hasRenderingStarted = false;
-			renderId++;
-		}
-	}
+    void draw()
+    {
+        // The following code will be called just after the main applet's draw() method
+        // since the renderPdf method might be called in the middle of the main applet's draw method, 
+        // we need to check if pdf rendering has actually started.
+        if (hasRenderingStarted)
+        {
+            if (isRenderingPdf)
+            {
+                if (renderer.equals(P2D) || renderer.equals(PDF))
+                {
+                    endRecord();
+                } else if (renderer.equals(P3D))
+                {
+                    endRaw();
+                }
+                isRenderingPdf = false;
+            }
+            if (isRenderingJpg)
+            {
+                isRenderingJpg = false;
+            }
+            hasRenderingStarted = false;
+            renderId++;
+        }
+    }
 
-	void renderPdf()
-	{
-		isRenderingPdf = true;
-	}
+    void renderPdf()
+    {
+        isRenderingPdf = true;
+    }
 
-	void renderPdfAndJpg()
-	{
-		isRenderingPdf = true;
-		isRenderingJpg = true;
-	}
+    void renderPdfAndJpg()
+    {
+        isRenderingPdf = true;
+        isRenderingJpg = true;
+    }
 
-	void renderJpg()
-	{
-		isRenderingJpg = true;
-	}
+    void renderJpg()
+    {
+        isRenderingJpg = true;
+    }
 
-	boolean isRenderingPdf()
-	{
-		return isRenderingPdf;
-	}
+    boolean isRenderingPdf()
+    {
+        return isRenderingPdf;
+    }
 
-	boolean isRenderingJpg()
-	{
-		return isRenderingJpg;
-	}
+    boolean isRenderingJpg()
+    {
+        return isRenderingJpg;
+    }
 
-}
-
-public class RenderCustom extends RenderBase
-{
-	// A convenience class to use a custom renderer (implementing
-	// the Renderer interface) with the RenderBase file system operations.
-	Renderer renderer;	
-
-	RenderCustom(PApplet applet, String path, Renderer renderer)
-	{
-		super(applet, path);
-		this.renderer = renderer;
-	}
-
-	void render()
-	{
-		renderer.render(baseRenderPath + today + "-" + runId + "-" + renderId); // Call custom renderer's render() method
-		renderId++;
-	}
-
-}
-
-public interface Renderer
-{
-	public void render(String filePathWithoutExtension);
 }
 
 public class RenderBase
 {
-	// This class contains the basic file system operations needed by renderers.
-	String path; // absolute path to the folder where images should be recorded
-	String baseRenderPath; // images are sorted in subfolders within "path". This is the current subfolder given git version and date
-	String gitVersionHash;
-	int runId; // for each day, the runId increases by 1 each time the program is launched and at least one image has been saved
-	int renderId = 1; // for each run, the renderId increases by 1 each time an image is saved 
-	String today;
-	boolean hasRenderingStarted = false;
+    // This class contains the basic file system operations needed by renderers.
+    String baseFolder; // absolute path to the folder containing the different render folders
+    String renderFolder; // absolute path to the render folder in which images will be saved
+    int runId; // for each day, the runId increases by 1 each time the program is launched and at least one image has been saved
+    int renderId; // for each run, the renderId increases by 1 each time an image is saved 
+    String today;
+    String filePathWithoutExtension; // Path of the next rendered file
+    String fileName; // Custom filename, if provided
+    boolean hasRenderingStarted;
+    boolean isSortedByDate;
+    RenderBase(PApplet applet, String baseFolder)
+    {
+        if (!baseFolder.endsWith("/"))
+        {
+            baseFolder += "/";
+        }
+        renderId = 1;
+        hasRenderingStarted = false;
+        isSortedByDate = true;
+        fileName = "";
+        this.baseFolder = baseFolder;
+        today = getTimeStamp();
+        renderFolder = baseFolder + today + "/";
+        runId = getRunId();
+        updateFilePath();
+    }
 
-	RenderBase(PApplet applet, String path)
-	{
-		if (!path.endsWith("/"))
-		{
-			path += "/";
-		}
-		this.path = path;
-		printWorkingDirectoryStatus();
-		gitVersionHash = getGitVersionHash();
-		today = getTimeStamp();
-		baseRenderPath = path + gitVersionHash + "/" + today + "/";
-		runId = getRunId();
-	}
+    RenderBase(PApplet applet, String baseFolder, String fileName)
+    {
+        this(applet, baseFolder);
+        this.fileName = fileName;
+        updateFilePath();
+    }
 
-	String getTimeStamp() 
-	{
-		Calendar now = Calendar.getInstance();
-		return String.format("20%1$ty-%1$tm-%1$td", now);
-	}
+    void sortByDate(boolean b)
+    {
+        if (b && !isSortedByDate)
+        {
+            renderFolder += today + "/";
+        }
+        else if (!b && isSortedByDate)
+        {
+            renderFolder = renderFolder.substring(0, renderFolder.length() - 12) + "/"; // remove the date
+        }
+        runId = getRunId();
+        updateFilePath();
+    }
 
-	void printWorkingDirectoryStatus()
-	{
-		try 
-		{
-			ProcessBuilder processBuilder = new ProcessBuilder("/usr/local/bin/git", "status");
-			processBuilder.directory(new File(sketchPath));
-		    processBuilder.redirectErrorStream(true); // Initially, this property is false, meaning that the standard output and error output of a subprocess are sent to two separate streams
-			Process p = processBuilder.start();
-		    BufferedReader output = new BufferedReader(new InputStreamReader(p.getInputStream()));
-		    String status;
-		    while ((status = output.readLine()) != null)
-		    {
-		    	println(status);
-		    }
-		    p.waitFor();
-		    output.close();
-		} catch (Exception e) 
-		{
-			println(e);
-		}
-	}
+    void updateFilePath()
+    {
+        if (!fileName.equals(""))
+        {
+            filePathWithoutExtension = renderFolder + fileName;
+        }
+        else
+        {
+            filePathWithoutExtension = renderFolder + getAutomaticFileName();
+        }
+    }
 
-	void commitAll(String message)
-	{
-		try 
-		{
-			ProcessBuilder processBuilder = new ProcessBuilder("/usr/local/bin/git", "commit", "-a", "-m", "\"" + message + "\"");
-			processBuilder.directory(new File(sketchPath));
-		    processBuilder.redirectErrorStream(true); // Initially, this property is false, meaning that the standard output and error output of a subprocess are sent to two separate streams
-			Process p = processBuilder.start();
-		    BufferedReader output = new BufferedReader(new InputStreamReader(p.getInputStream()));
-		    String status;
-		    while ((status = output.readLine()) != null)
-		    {
-		    	println(status);
-		    }
-		    p.waitFor();
-		    output.close();
-		} catch (Exception e) 
-		{
-			println(e);
-		}	
-	}
+    String getAutomaticFileName()
+    {
+        return today + "-" + runId + "-" + renderId;
+    }
 
-	String getGitVersionHash()
-	{
-		try 
-		{
-			ProcessBuilder processBuilder = new ProcessBuilder("/usr/local/bin/git", "rev-parse", "--short", "HEAD");
-			processBuilder.directory(new File(sketchPath));
-		    processBuilder.redirectErrorStream(true); // Initially, this property is false, meaning that the standard output and error output of a subprocess are sent to two separate streams
-			Process p = processBuilder.start();
-		    BufferedReader output = new BufferedReader(new InputStreamReader(p.getInputStream()));
-		    String hash = output.readLine();
-		    p.waitFor();
-		    output.close();
-		    return hash;
-		} catch (Exception e) 
-		{
-			return null;
-		} 
-	}
+    String getTimeStamp()
+    {
+        Calendar now = Calendar.getInstance();
+        return String.format("20%1$ty-%1$tm-%1$td", now);
+    }
 
-	int getRunId()
-	{
-    	String[] fileNames = listFileNames(baseRenderPath);
-    	if (fileNames != null)
-    	{
-    		// if some images were previously recorded for this version
-    		int runId = 0; // We start at 0: if no previous runId is found, runId will be increased to 1
-    		for (String n : fileNames)
-    		{
-    			if (n.startsWith(today))
-    			{
-    				// if at least one image was previously recorded on this day
-    				String[] s = n.split("-");
-    				int id = Integer.parseInt(s[3]);
-    				if (id > runId)
-    				{
-    					runId = id; // we want to retrieve the highest runId
-    				} 
-    			}
-    		}
-			runId++;
-    		return runId;
-    	} else
-    	{
-    		// if no image was previously recorded for this version, start runId at 1
-    		return 1;
-    	}
-	}
+    int getRunId()
+    {
+        String[] fileNames = listFileNames(renderFolder);
+        if (fileNames != null)
+        {
+            // if some images were previously recorded for this version
+            int runId = 0; // We start at 0: if no previous runId is found, runId will be increased to 1
+            for (String n : fileNames)
+            {
+                if (n.startsWith(today))
+                {
+                    // if at least one image was previously recorded on this day
+                    String[] s = n.split("-");
+                    if (s.length > 3)
+                    {
+                        int id = Integer.parseInt(s[3]);
+                        if (id > runId)
+                        {
+                            runId = id; // we want to retrieve the highest runId
+                        } 
+                    }
+                }
+            }
+            runId++;
+            return runId;
+        }
+        else
+        {
+            // if no image was previously recorded for this version, start runId at 1
+            return 1;
+        }
+    }
 
-	String[] listFileNames(String dir) 
-	{
-  		File file = new File(dir);
-  		if (file.isDirectory()) 
-  		{
-    		String names[] = file.list();
-    		return names;
-  		} else 
-  		{
-		    return null;
-  		}
-	}
+    String[] listFileNames(String dir)
+    {
+        File file = new File(dir);
+        if (file.isDirectory())
+        {
+            String names[] = file.list();
+            return names;
+        }
+        else
+        {
+            return null;
+        }
+    }
 
 }
